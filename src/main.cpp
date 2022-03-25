@@ -3,6 +3,8 @@
 // g++  .\src\main.cpp -o main.exe -lwinhttp -lUrlmon -static -static-libgcc -static-libstdc++ -O2
 
 
+#include <cassert>
+#include <cstdlib>
 #include <iostream>
 #include <assert.h>
 #include <windows.h>
@@ -10,6 +12,14 @@
 #include <winhttp.h>
 
 using namespace std;
+
+
+// ---------Config-------------
+constexpr auto CFG_UseApiUrl    = false; // TODO
+constexpr auto CFG_InstallerApiUrl = ""; // Active if CFG_UseApiUrl = true; TODO
+constexpr auto CFG_InstallerUrl = "https://download.bell-sw.com/java/17.0.2+9/bellsoft-jre17.0.2+9-windows-amd64-full.msi"; // Active if CFG_UseApiUrl = false;
+// ----------------------------
+
 
 string FetchStr(LPCWSTR host = L"", LPCWSTR path = L"", LPCWSTR method = L"GET") {
   DWORD dwSize = 0;
@@ -82,15 +92,27 @@ string FetchStr(LPCWSTR host = L"", LPCWSTR path = L"", LPCWSTR method = L"GET")
 */
 
 int main() { 
-  cout << "JreClickOneTime v0.1" << endl;
+  cout << "JreClickOneTime v0.1.1" << endl;
   cout << "Downloading Java Runtime Environment(JRE). Please wait ..." << endl;
 
-  string installerUrl = FetchStr(L"api.bell-sw.com", L"/v1/liberica/releases?version-feature=17&version-modifier=latest&bitness=64&release-type=lts&os=windows&arch=x86&package-type=msi&bundle-type=jre-full&output=text&fields=downloadUrl", L"GET");
+  string installerUrl;
+  // 从API获取链接
+  // installerUrl = FetchStr(L"api.bell-sw.com", L"/v1/liberica/releases?version-feature=17&version-modifier=latest&bitness=64&release-type=lts&os=windows&arch=x86&package-type=msi&bundle-type=jre-full&output=text&fields=downloadUrl", L"GET");
+  // FetchStr得到的github链接访问有问题
+
+  // 手动指定链接
+  installerUrl = CFG_InstallerUrl;
   cout << "Downloading installer: " << installerUrl << endl;
-  URLDownloadToFile(nullptr,installerUrl.c_str(), "./jre-installer.msi", 0 ,nullptr);
+
+  HRESULT dlResult = URLDownloadToFile(nullptr,installerUrl.c_str(), "./jre-installer.msi", 0 ,nullptr);
+  if(dlResult != S_OK) {
+    cout << "Download faild! Please check your network and try again." << endl;
+    system("pause");
+    return 1;
+  }
 
   cout << "Running installer..." << endl;
-  WinExec("msiexec /qr /i ./jre-installer.msi", SW_SHOWMINIMIZED); //SW_SHOWNORMAL SW_HIDE SW_SHOWMINIMIZED
+  WinExec("msiexec /qr /i jre-installer.msi", SW_SHOWMINIMIZED); //SW_SHOWNORMAL SW_HIDE SW_SHOWMINIMIZED
 
   cout << "Done." << endl;
   return 0; 
